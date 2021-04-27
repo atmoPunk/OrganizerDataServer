@@ -1,5 +1,7 @@
 package ru.mse.dataserver;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -8,7 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 
 import java.sql.Date;
@@ -24,7 +26,7 @@ public class Server {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(5000), 0);
             HttpContext httpContext = server.createContext("/");
-            httpContext.setHandler(new MyHttpHandler());
+            httpContext.setHandler(new ScheduleHttpHandler());
             server.start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -33,23 +35,22 @@ public class Server {
     }
 
 
-    private class MyHttpHandler implements HttpHandler {
+    private class ScheduleHttpHandler implements HttpHandler {
 
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             System.err.println(httpExchange.getRequestURI().toString());
 
             try (var reader = new InputStreamReader(httpExchange.getRequestBody())) {
-                Gson g = new Gson();
+                Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
                 String path = httpExchange.getRequestURI().toString().split("\\?")[0];
 
                 switch (path) {
                     case "/day": {
                         System.err.println("ENTER /day");
-                        JsonElement json = g.fromJson(reader, JsonElement.class);
-                        Integer day = json.getAsJsonObject().get("day").getAsInt();
+                        DayRequest dayRequest = g.fromJson(reader, DayRequest.class);
                         try {
-                            handleDaySchedule(httpExchange, day);
+                            handleDaySchedule(httpExchange, dayRequest);
                         } catch (IOException e) {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
@@ -57,8 +58,31 @@ public class Server {
                     } break;
                     case "/change": {
                         System.err.println("ENTER /change");
-                        JsonElement json = g.fromJson(reader, JsonElement.class);
-                        String date = json.getAsJsonObject().get("date").getAsString();
+                        try {
+                            TimetableChangeRequest data = g.fromJson(reader, TimetableChangeRequest.class);
+                            System.err.println("ABC");
+                            handleScheduleChange(httpExchange, data);
+                        } catch (JsonSyntaxException | IOException ex) {
+                            ex.printStackTrace();
+                            System.err.println(ex.getMessage());
+                            throw ex;
+                        }
+//                        try {
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                            System.err.println(e.getMessage());
+//                        }
+                        break;
+                    }
+                    case "/homework/subj" :{
+                        System.err.println("ENTER /homework/subj");
+                        HomeworkBySubjRequest hwRequest = g.fromJson(reader, HomeworkBySubjRequest.class);
+                        try {
+                            handleGetHomeworkBySubj(httpExchange, hwRequest);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.err.println(e.getMessage());
+                        }
                         break;
                     }
                     default: {
@@ -69,11 +93,15 @@ public class Server {
             }
         }
 
-        private void handleDaySchedule(HttpExchange httpExchange, Integer day) throws IOException {
+        private void handleDaySchedule(HttpExchange httpExchange, DayRequest dayRequest) throws IOException {
             String ans;
             try (DBConnection db = new DBConnection()) {
-                ans = db.getTimetableDay(day);
-                TimetableChange change = db.getChangesForDate(new Date(System.currentTimeMillis()));
+                ans = db.getTimetableDay(dayRequest.day);
+                String change = db.getChangesForDate(LocalDate.now());
+                System.err.println(change);
+                if (change != null) {
+                    ans = change;
+                }
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
                 ans = "Ошибка сервера, попробуйте позже";
@@ -81,16 +109,21 @@ public class Server {
             handleResponse(httpExchange, ans);
         }
 
-        private void handleScheduleChange(HttpExchange httpExchange, TimetableChange timetableChange) throws IOException {
+        private void handleScheduleChange(HttpExchange httpExchange, TimetableChangeRequest data) throws IOException {
             String ans;
             try (DBConnection db = new DBConnection()) {
-                db.addTimetableChanges(timetableChange);
+                db.addTimetableChanges(data.date, data.change);
+                System.err.println("QWE");
                 ans = "Ok";
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
                 ans = "Ошибка сервера, попробуйте позже";
             }
             handleResponse(httpExchange, ans);
+        }
+
+        private void handleGetHomeworkBySubj(HttpExchange httpExchange, HomeworkBySubjRequest request) throws IOException {
+
         }
 
         private void handleResponse(HttpExchange httpExchange, String toSend)  throws IOException {
@@ -103,4 +136,3 @@ public class Server {
         }
     }
 }
-
