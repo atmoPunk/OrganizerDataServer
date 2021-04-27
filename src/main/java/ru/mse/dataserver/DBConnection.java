@@ -51,16 +51,29 @@ public class DBConnection implements AutoCloseable {
     }
 
     public String getHomeworkBySubject(String subject) throws SQLException {
-        System.err.println(subject);
-        String sql = "SELECT new_timetable FROM changes WHERE date = ?";
+        String sql = "SELECT * FROM homework WHERE subject = ? AND date >= ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
-//        stmt.setDate(1, date);
-        System.err.println(stmt);
+        LocalDate curDate = LocalDate.now();
+        stmt.setString(1, subject);
+        stmt.setDate(2, Date.valueOf(curDate));
         try (ResultSet result = stmt.executeQuery()) {
             if (!result.next()) {
                 return null;
             }
-            return result.getString("new_timetable");
+            return result.toString();
+        }
+    }
+
+    public String getHomework() throws SQLException {
+        String sql = "SELECT * FROM homework WHERE date >= ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        LocalDate curDate = LocalDate.now();
+        stmt.setDate(1, Date.valueOf(curDate));
+        try (ResultSet result = stmt.executeQuery()) {
+            if (!result.next()) {
+                return null;
+            }
+            return result.toString();
         }
     }
 

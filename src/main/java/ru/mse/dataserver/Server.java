@@ -85,6 +85,16 @@ public class Server {
                         }
                         break;
                     }
+                    case "/homework" :{
+                        System.err.println("ENTER /homework");
+                        try {
+                            handleGetHomework(httpExchange);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.err.println(e.getMessage());
+                        }
+                        break;
+                    }
                     default: {
                         handleResponse(httpExchange, "UNKNOWN PATH");
                         break;
@@ -123,7 +133,25 @@ public class Server {
         }
 
         private void handleGetHomeworkBySubj(HttpExchange httpExchange, HomeworkBySubjRequest request) throws IOException {
+            String ans;
+            try (DBConnection db = new DBConnection()) {
+                ans = db.getHomeworkBySubject(request.subject);
+            } catch (SQLException e) {
+                System.err.println(e.getMessage());
+                ans = "Ошибка сервера, попробуйте позже";
+            }
+            handleResponse(httpExchange, ans);
+        }
 
+        private void handleGetHomework(HttpExchange httpExchange) throws IOException {
+            String ans;
+            try (DBConnection db = new DBConnection()) {
+                ans = db.getHomework();
+            } catch (SQLException e) {
+                System.err.println(e.getMessage());
+                ans = "Ошибка сервера, попробуйте позже";
+            }
+            handleResponse(httpExchange, ans);
         }
 
         private void handleResponse(HttpExchange httpExchange, String toSend)  throws IOException {
