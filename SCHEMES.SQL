@@ -1,8 +1,8 @@
 CREATE TABLE week
 (
     dayofweek INTEGER NOT NULL UNIQUE,
-    timetable TEXT NOT NULL, -- Actually json of [{"link": "...", "name": "Алгоритмы", "subtype": "Лекция", "start_time": 123, "end_time": 456}, ...]
-    PRIMARY KEY(dayofweek)
+    timetable TEXT    NOT NULL, -- Actually json of [{"link": "...", "name": "Алгоритмы", "subtype": "Лекция", "start_time": 123, "end_time": 456}, ...]
+    PRIMARY KEY (dayofweek)
 );
 
 CREATE TABLE changes
@@ -13,3 +13,13 @@ CREATE TABLE changes
     new_timetable TEXT, -- json same as timetable
     PRIMARY KEY (id AUTOINCREMENT)
 );
+
+CREATE TABLE homework
+(
+    id      INTEGER,
+    date    INTEGER NOT NULL,
+    subject TEXT    NOT NULL,
+    link    TEXT,
+    data    TEXT,
+    PRIMARY KEY (id AUTOINCREMENT)
+)
