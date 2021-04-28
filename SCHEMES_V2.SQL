@@ -54,7 +54,8 @@ CREATE TABLE "change_to_tables" (
 
 CREATE TABLE "teacher_emails" (
     "id" INTEGER,
-    "email" TEXT NOT NULL,
+    "email" TEXT,
+    "perfreport" TEXT,
     "subject" TEXT NOT NULL,
     "matlogic"	INTEGER CHECK("matlogic" > 1 AND "matlogic" <= 2), -- 1 - Жаворонков, 2 - Халанский
     "algos"	INTEGER CHECK("algos" > 0 AND "algos" <= 2), -- 1 - Мишунин, 2 - Лапенок
@@ -62,3 +63,4 @@ CREATE TABLE "teacher_emails" (
     "spec"	INTEGER CHECK("spec" > 0 AND "spec" <= 3), -- 1 - плюсы, 2 - матстат, 3 - языки
     PRIMARY KEY("id" AUTOINCREMENT)
 );
+

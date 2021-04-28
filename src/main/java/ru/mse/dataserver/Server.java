@@ -11,6 +11,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Collections;
 
@@ -43,7 +44,7 @@ public class Server {
         public void handle(HttpExchange httpExchange) throws IOException {
             System.err.println(httpExchange.getRequestURI().toString());
 
-            String user = httpExchange.getResponseHeaders().getFirst("Ident");
+            String user = httpExchange.getRequestHeaders().getFirst("Ident");
             System.err.println(user);
             if (user != null && !user.isEmpty()) {
                 try (DBConnection conn = new DBConnection()) {
@@ -51,6 +52,8 @@ public class Server {
                         conn.registerUser(user);
                     }
                 } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    System.err.println(ex.getMessage());
                     handleResponse(httpExchange, "SERVER ERROR");
                 }
             }
@@ -124,6 +127,16 @@ public class Server {
 
                         break;
                     }
+                    case "/perfreport": {
+                        System.err.println("ENTER /perfreport");
+                        PerformanceReportRequest req = g.fromJson(reader, PerformanceReportRequest.class);
+                        try {
+                            handlePerfReport(httpExchange, user, req.subject);
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                            System.err.println(ex.getMessage());
+                        }
+                    } break;
                     case "/set_lessons": {
                         System.err.println("ENTER /set_lessons");
                         SetLessonsRequest slReq = g.fromJson(reader, SetLessonsRequest.class);
@@ -158,20 +171,34 @@ public class Server {
         private void handleDaySchedule(HttpExchange httpExchange, DayRequest dayRequest, String user) throws IOException {
             String ans;
             try (DBConnection db = new DBConnection()) {
-                System.err.println("WOW");
-                Timetable t = db.getTimetableDay(dayRequest.day, user);
-                System.err.println("WOWZERS");
-//                Timetable change = db.getChangesForDate(LocalDate.now());
-//                System.err.println(change);
-//                if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
-//                    t = change;
-//                }
+                UserInfo info = db.getUserInfo(user);
+                Timetable t = db.getTimetableDay(dayRequest.day, info);
+                //TODO: changes not only for today
+                if (DayOfWeek.of(dayRequest.day) == LocalDate.now().getDayOfWeek()) {
+                    Timetable change = db.getChangesForDate(LocalDate.now());
+                    System.err.println(change);
+                    if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
+                        t = change;
+                    }
+                }
                 ans = new Gson().toJson(t);
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
                 ans = "Ошибка сервера, попробуйте позже";
             }
             handleResponse(httpExchange, ans);
+        }
+
+        private void handlePerfReport(HttpExchange httpExchange, String user, String subject) throws IOException {
+            try (DBConnection db = new DBConnection()) {
+//                UserInfo ui = db.getUserInfo(user);
+                String reportLink = db.getReport(user, subject);
+                handleResponse(httpExchange, "{\"link\":\"" + reportLink + "\"}");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                System.err.println(ex.getMessage());
+                handleResponse(httpExchange, "SERVER ERROR");
+            }
         }
 
         private void handleScheduleChange(HttpExchange httpExchange, TimetableChangeRequest data) throws IOException {

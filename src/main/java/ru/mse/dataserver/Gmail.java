@@ -18,10 +18,15 @@ public class Gmail {
         props.put("mail.smtp.port", "587");
         props.put("mail.smtp.auth", "true");
 
-        Session session = Session.getDefaultInstance(props);
-        MimeMessage message = new MimeMessage(session);
+        Session session = Session.getInstance(props, new javax.mail.Authenticator() {
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(USER_NAME, PASSWORD);
+            }
+        });
+                //Session.getDefaultInstance(props);
 
         try {
+            MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(USER_NAME));
             InternetAddress[] toAddress = new InternetAddress[to.length];
 
@@ -37,6 +42,7 @@ public class Gmail {
             message.setSubject(subject);
             message.setText(body);
             Transport transport = session.getTransport("smtp");
+
             transport.connect(host, USER_NAME, PASSWORD);
             transport.sendMessage(message, message.getAllRecipients());
             transport.close();

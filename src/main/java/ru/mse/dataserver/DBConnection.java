@@ -1,7 +1,5 @@
 package ru.mse.dataserver;
 
-import com.google.gson.Gson;
-
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,7 +15,7 @@ public class DBConnection implements AutoCloseable {
     }
 
     public boolean isRegistered(String user) throws SQLException {
-        String sql = "SELECT 1 from users WHERE id = ?";
+        String sql = "SELECT 1 from users WHERE user = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setString(1, user);
         try (ResultSet rs = stmt.executeQuery()) {
@@ -26,14 +24,32 @@ public class DBConnection implements AutoCloseable {
     }
 
     public void registerUser(String user) throws SQLException {
-        String sql = "INSERT INTO users(id) VALUES(?)";
+        String sql = "INSERT INTO users(user) VALUES(?)";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setString(1, user);
         stmt.executeUpdate();
     }
 
+    public UserInfo getUserInfo(String user) throws SQLException {
+        String sql = "SELECT * FROM users where user = ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, user);
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (!rs.next()) {
+                throw new SQLException("No such user: " + user);
+            }
+            UserInfo ui = new UserInfo();
+            ui.user = user;
+            ui.formlang = rs.getInt("formlang");
+            ui.spec = rs.getInt("spec");
+            ui.matlogic = rs.getInt("matlogic");
+            ui.algos = rs.getInt("algos");
+            return ui;
+        }
+    }
+
     public void setLessons(String user, SetLessonsRequest req) throws SQLException {
-        String sql = "UPDATE users SET " + req.subject +  " = ? WHERE id = ?";
+        String sql = "UPDATE users SET " + req.subject +  " = ? WHERE user = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
 //        stmt.setString(1, req.subject);
         stmt.setInt(1, req.group);
@@ -41,26 +57,27 @@ public class DBConnection implements AutoCloseable {
         stmt.executeUpdate();
     }
 
-    public Timetable getTimetableDay(int day, String user) throws SQLException {
-        String getUserInfo = "SELECT * FROM users WHERE user = ?";
-        PreparedStatement uiStmt = conn.prepareStatement(getUserInfo);
-        int matlogic = 0;
-        int formlang = 0;
-        int algos = 0;
-        int spec = 0;
-        try (ResultSet rs = uiStmt.executeQuery()) {
-            if (rs.next()) {
-                matlogic = rs.getInt("matlogic");
-                formlang = rs.getInt("formlang");
-                algos = rs.getInt("algos");
-                spec = rs.getInt("spec");
-            }
-        }
+    public Timetable getTimetableDay(int day, UserInfo ui) throws SQLException {
+//        String getUserInfo = "SELECT * FROM users WHERE user = ?";
+//        PreparedStatement uiStmt = conn.prepareStatement(getUserInfo);
+//        int matlogic = 0;
+//        int formlang = 0;
+//        int algos = 0;
+//        int spec = 0;
+//        uiStmt.setString(1, user);
+//        try (ResultSet rs = uiStmt.executeQuery()) {
+//            if (rs.next()) {
+//                matlogic = rs.getInt("matlogic");
+//                formlang = rs.getInt("formlang");
+//                algos = rs.getInt("algos");
+//                spec = rs.getInt("spec");
+//            }
+//        }
 
         String sql = "SELECT * FROM timetable WHERE weekday = ? AND (matlogic = ? OR matlogic IS NULL) AND is_temp = 0 ORDER BY start_time";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setInt(1, day);
-        stmt.setInt(2, matlogic);
+        stmt.setInt(2, ui.matlogic);
         try (ResultSet result = stmt.executeQuery()) {
             System.err.println("Query executed");
             Timetable t = new Timetable();
@@ -194,5 +211,22 @@ public class DBConnection implements AutoCloseable {
     @Override
     public void close() throws SQLException {
         conn.close();
+    }
+
+    public String getReport(String user, String subject) throws SQLException {
+        String sql = "SELECT perfreport FROM teacher_emails JOIN users ON " +
+                "(teacher_emails.formlang IS users.formlang OR teacher_emails.formlang IS NULL OR users.formlang IS NULL) " +
+                "AND (teacher_emails.algos IS users.algos OR teacher_emails.algos IS NULL OR users.formlang IS NULL) " +
+                "AND (teacher_emails.matlogic IS users.matlogic OR teacher_emails.matlogic IS NULL OR users.matlogic IS NULL) " +
+                "AND (teacher_emails.spec IS users.spec OR teacher_emails.spec IS NULL OR users.spec IS NULL) WHERE subject = ? AND users.user = ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, subject);
+        stmt.setString(2, user);
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (!rs.next()) {
+                throw new SQLException("NO PREF REPORT");
+            }
+            return rs.getString("perfreport");
+        }
     }
 }
