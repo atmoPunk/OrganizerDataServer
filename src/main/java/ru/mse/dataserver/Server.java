@@ -118,10 +118,22 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
+                        break;}
+                    case "/homework/send":{
+                        System.err.println("ENTER /homework/send");
+
                         break;
                     }
-                    case "/set_lessons/matlogic": {
-                        System.err.println("ENTER /set_lessons/matlogic");
+                    case "/set_lessons": {
+                        System.err.println("ENTER /set_lessons");
+                        SetLessonsRequest slReq = g.fromJson(reader, SetLessonsRequest.class);
+                        try {
+                            handleSetLessons(httpExchange, user, slReq);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.err.println(e.getMessage());
+                        }
+
                     } break;
                     default: {
                         handleResponse(httpExchange, "UNKNOWN PATH");
@@ -129,6 +141,18 @@ public class Server {
                     }
                 }
             }
+        }
+
+        private void handleSetLessons(HttpExchange httpExchange, String user, SetLessonsRequest slReq) throws IOException {
+            String ans;
+            try (DBConnection db = new DBConnection()) {
+                db.setLessons(user, slReq);
+                ans = "Ok";
+            } catch (SQLException e) {
+                System.err.println(e.getMessage());
+                ans = "SERVER ERROR";
+            }
+            handleResponse(httpExchange, ans);
         }
 
         private void handleDaySchedule(HttpExchange httpExchange, DayRequest dayRequest, String user) throws IOException {
@@ -197,6 +221,20 @@ public class Server {
                 ans = "Ошибка сервера, попробуйте позже";
             }
             handleResponse(httpExchange, ans);
+        }
+
+        private void sendHomework(HttpExchange httpExchange, HomeworkSendRequest request) throws IOException {
+            String ans;
+            try (DBConnection db = new DBConnection()) {
+//                String sendTo = db.getHomeworkAdress();
+//                Gmail.send();
+                ans = "Ok";
+            } catch (SQLException e) {
+                System.err.println(e.getMessage());
+                ans = "Ошибка сервера, попробуйте позже";
+            }
+            handleResponse(httpExchange, ans);
+
         }
 
         private void handleResponse(HttpExchange httpExchange, String toSend)  throws IOException {
