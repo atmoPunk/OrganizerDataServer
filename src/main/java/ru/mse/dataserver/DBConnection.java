@@ -33,17 +33,17 @@ public class DBConnection implements AutoCloseable {
     }
 
     public void setLessons(String user, SetLessonsRequest req) throws SQLException {
-        String sql = "UPDATE users SET ? = ? WHERE id = ?";
+        String sql = "UPDATE users SET " + req.subject +  " = ? WHERE id = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
-        stmt.setString(1, req.subject);
-        stmt.setInt(2, req.group);
-        stmt.setString(3, user);
+//        stmt.setString(1, req.subject);
+        stmt.setInt(1, req.group);
+        stmt.setString(2, user);
         stmt.executeUpdate();
     }
 
     public Timetable getTimetableDay(int day, String user) throws SQLException {
         String getUserInfo = "SELECT * FROM users WHERE id = ?";
-        PreparedStatement uiStmt = conn.prepareStatement(user);
+        PreparedStatement uiStmt = conn.prepareStatement(getUserInfo);
         int matlogic = 0;
         int formlang = 0;
         int algos = 0;
@@ -57,9 +57,10 @@ public class DBConnection implements AutoCloseable {
             }
         }
 
-        String sql = "SELECT * FROM timetable WHERE weekday = ? AND is_temp = 0 ORDER BY start_time";
+        String sql = "SELECT * FROM timetable WHERE weekday = ? AND (matlogic = ? OR matlogic IS NULL) AND is_temp = 0 ORDER BY start_time";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setInt(1, day);
+        stmt.setInt(2, matlogic);
         try (ResultSet result = stmt.executeQuery()) {
             System.err.println("Query executed");
             Timetable t = new Timetable();

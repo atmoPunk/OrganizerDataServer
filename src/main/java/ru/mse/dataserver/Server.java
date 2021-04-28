@@ -26,7 +26,7 @@ public class Server {
 
     Server(){
         try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(5000), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress(5001), 0);
             HttpContext httpContext = server.createContext("/");
             httpContext.setHandler(new ScheduleHttpHandler());
             server.start();
@@ -160,11 +160,12 @@ public class Server {
             try (DBConnection db = new DBConnection()) {
                 System.err.println("WOW");
                 Timetable t = db.getTimetableDay(dayRequest.day, user);
-                Timetable change = db.getChangesForDate(LocalDate.now());
+                System.err.println("WOWZERS");
+//                Timetable change = db.getChangesForDate(LocalDate.now());
 //                System.err.println(change);
-                if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
-                    t = change;
-                }
+//                if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
+//                    t = change;
+//                }
                 ans = new Gson().toJson(t);
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
@@ -238,6 +239,7 @@ public class Server {
         }
 
         private void handleResponse(HttpExchange httpExchange, String toSend)  throws IOException {
+            System.err.println(toSend);
             httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("application/json"));
             httpExchange.sendResponseHeaders(200, 0);
             OutputStream outputStream = httpExchange.getResponseBody();

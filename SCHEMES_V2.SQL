@@ -20,19 +20,19 @@ CREATE TABLE "homework" (
                             "subject"	TEXT NOT NULL,
                             "link"	TEXT,
                             "data"	TEXT,
-                            "matlogic"	INTEGER CHECK("matlogic" >= 0 AND "matlogic" < 2),
-                            "formlang"	INTEGER CHECK("formlang" >= 0 AND "formlang" < 2),
-                            "spec"	INTEGER CHECK("spec" >= 0 AND "spec" < 3),
-                            "algos"	INTEGER CHECK("algos" >= 0 AND "algos" < 2),
+                            "matlogic"	INTEGER CHECK("matlogic" > 1 AND "matlogic" <= 2), -- 1 - Жаворонков, 2 - Халанский
+                            "algos"	INTEGER CHECK("algos" > 0 AND "algos" <= 2), -- 1 - Мишунин, 2 - Лапенок
+                            "formlang"	INTEGER CHECK("formlang" > 0 AND "formlang" <= 2), -- 1 - Вербицкая, 2 - Халанский
+                            "spec"	INTEGER CHECK("spec" > 0 AND "spec" <= 3), -- 1 - плюсы, 2 - матстат, 3 - языки
                             PRIMARY KEY("id" AUTOINCREMENT)
 );
 
 CREATE TABLE "users" (
                          "user"	INTEGER NOT NULL UNIQUE,
-                         "matlogic"	INTEGER CHECK("matlogic" >= 0 AND "matlogic" < 2),
-                         "algos"	INTEGER CHECK("algos" >= 0 AND "algos" < 2),
-                         "formlang"	INTEGER CHECK("formlang" >= 0 AND "formlang" < 2),
-                         "spec"	INTEGER CHECK("spec" >= 0 AND "spec" < 3),
+                         "matlogic"	INTEGER CHECK("matlogic" > 1 AND "matlogic" <= 2), -- 1 - Жаворонков, 2 - Халанский
+                         "algos"	INTEGER CHECK("algos" > 0 AND "algos" <= 2), -- 1 - Мишунин, 2 - Лапенок
+                         "formlang"	INTEGER CHECK("formlang" > 0 AND "formlang" <= 2), -- 1 - Вербицкая, 2 - Халанский
+                         "spec"	INTEGER CHECK("spec" > 0 AND "spec" <= 3), -- 1 - плюсы, 2 - матстат, 3 - языки
                          PRIMARY KEY("user")
 );
 
@@ -50,4 +50,15 @@ CREATE TABLE "change_to_tables" (
     PRIMARY KEY("id" AUTOINCREMENT),
     FOREIGN KEY("change_id") REFERENCES "changes"("id"),
     FOREIGN KEY("timetable_id") REFERENCES "timetable"("id")
-)
+);
+
+CREATE TABLE "teacher_emails" (
+    "id" INTEGER,
+    "email" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "matlogic"	INTEGER CHECK("matlogic" > 1 AND "matlogic" <= 2), -- 1 - Жаворонков, 2 - Халанский
+    "algos"	INTEGER CHECK("algos" > 0 AND "algos" <= 2), -- 1 - Мишунин, 2 - Лапенок
+    "formlang"	INTEGER CHECK("formlang" > 0 AND "formlang" <= 2), -- 1 - Вербицкая, 2 - Халанский
+    "spec"	INTEGER CHECK("spec" > 0 AND "spec" <= 3), -- 1 - плюсы, 2 - матстат, 3 - языки
+    PRIMARY KEY("id" AUTOINCREMENT)
+);
