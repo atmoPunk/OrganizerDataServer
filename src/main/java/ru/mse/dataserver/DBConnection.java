@@ -42,7 +42,7 @@ public class DBConnection implements AutoCloseable {
     }
 
     public Timetable getTimetableDay(int day, String user) throws SQLException {
-        String getUserInfo = "SELECT * FROM users WHERE id = ?";
+        String getUserInfo = "SELECT * FROM users WHERE user = ?";
         PreparedStatement uiStmt = conn.prepareStatement(getUserInfo);
         int matlogic = 0;
         int formlang = 0;
