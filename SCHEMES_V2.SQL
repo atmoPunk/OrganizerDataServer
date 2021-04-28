@@ -6,10 +6,10 @@ CREATE TABLE "timetable" (
                              "start_time"	INTEGER NOT NULL,
                              "end_time"	INTEGER NOT NULL,
                              "subtype"	TEXT NOT NULL,
-                             "matlogic"	INTEGER CHECK("matlogic" >= 0 AND "matlogic" < 2), -- 0 - Жаворонков, 1 - Халанский
-                             "algos"	INTEGER CHECK("algos" >= 0 AND "algos" < 2), -- 0 - Мишунин, 2 - Лапенок
-                             "formlang"	INTEGER CHECK("formlang" >= 0 AND "formlang" < 2), -- 0 - Вербицкая, 2 - Халанский
-                             "spec"	INTEGER CHECK("spec" >= 0 AND "spec" < 3), -- 0 - плюсы, 1 - матстат, 2 - языки
+                             "matlogic"	INTEGER CHECK("matlogic" > 1 AND "matlogic" <= 2), -- 1 - Жаворонков, 2 - Халанский
+                             "algos"	INTEGER CHECK("algos" > 0 AND "algos" <= 2), -- 1 - Мишунин, 2 - Лапенок
+                             "formlang"	INTEGER CHECK("formlang" > 0 AND "formlang" <= 2), -- 1 - Вербицкая, 2 - Халанский
+                             "spec"	INTEGER CHECK("spec" > 0 AND "spec" <= 3), -- 1 - плюсы, 2 - матстат, 3 - языки
                              "is_temp"	INTEGER NOT NULL, -- 0 - not temp, 1 - temp
                              PRIMARY KEY("id" AUTOINCREMENT)
 );

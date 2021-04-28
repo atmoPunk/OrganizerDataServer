@@ -124,7 +124,13 @@ public class Server {
                         break;}
                     case "/homework/send":{
                         System.err.println("ENTER /homework/send");
-
+                        HomeworkSendRequest req = g.fromJson(reader, HomeworkSendRequest.class);
+                        try {
+                            handleSendHomework(httpExchange, user, req);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.err.println(e.getMessage());
+                        }
                         break;
                     }
                     case "/perfreport": {
@@ -251,11 +257,13 @@ public class Server {
             handleResponse(httpExchange, ans);
         }
 
-        private void sendHomework(HttpExchange httpExchange, HomeworkSendRequest request) throws IOException {
+        private void handleSendHomework(HttpExchange httpExchange, String user, HomeworkSendRequest request) throws IOException {
             String ans;
             try (DBConnection db = new DBConnection()) {
-//                String sendTo = db.getHomeworkAdress();
-//                Gmail.send();
+                String sendTo = db.getHomeworkAddress(user, request.subject);
+                System.err.println("SEND TO: " + sendTo);
+                String messageSubj = "ITMO.MSE homework on " + request.subject + " from " + user;
+                Gmail.send(sendTo, messageSubj, request.message);
                 ans = "Ok";
             } catch (SQLException e) {
                 System.err.println(e.getMessage());

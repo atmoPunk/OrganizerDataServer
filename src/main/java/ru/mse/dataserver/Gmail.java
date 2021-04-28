@@ -6,9 +6,9 @@ import javax.mail.internet.*;
 
 public class Gmail {
     private static String USER_NAME = "rompel322";
-    private static String PASSWORD = "hevgtkmhevgtkm123";
+    private static String PASSWORD = "twiuoeolskpdxcoo";
 
-    private static void send(String[] to, String subject, String body) {
+    public static void send(String to, String subject, String body) {
         Properties props = System.getProperties();
         String host = "smtp.gmail.com";
         props.put("mail.smtp.starttls.enable", "true");
@@ -23,21 +23,12 @@ public class Gmail {
                 return new PasswordAuthentication(USER_NAME, PASSWORD);
             }
         });
-                //Session.getDefaultInstance(props);
 
         try {
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(USER_NAME));
-            InternetAddress[] toAddress = new InternetAddress[to.length];
-
-            // To get the array of addresses
-            for (int i = 0; i < to.length; i++) {
-                toAddress[i] = new InternetAddress(to[i]);
-            }
-
-            for (int i = 0; i < toAddress.length; i++) {
-                message.addRecipient(Message.RecipientType.TO, toAddress[i]);
-            }
+            InternetAddress toAddress = new InternetAddress(to);
+            message.addRecipient(Message.RecipientType.TO, toAddress);
 
             message.setSubject(subject);
             message.setText(body);

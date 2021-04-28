@@ -208,6 +208,23 @@ public class DBConnection implements AutoCloseable {
         stmt.executeUpdate();
     }
 
+    public String   getHomeworkAddress(String user, String subject) throws SQLException {
+        String sql = "SELECT email FROM teacher_emails JOIN users ON " +
+                "(teacher_emails.formlang IS users.formlang OR teacher_emails.formlang IS NULL OR users.formlang IS NULL) " +
+                "AND (teacher_emails.algos IS users.algos OR teacher_emails.algos IS NULL OR users.formlang IS NULL) " +
+                "AND (teacher_emails.matlogic IS users.matlogic OR teacher_emails.matlogic IS NULL OR users.matlogic IS NULL) " +
+                "AND (teacher_emails.spec IS users.spec OR teacher_emails.spec IS NULL OR users.spec IS NULL) WHERE subject = ? AND users.user = ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, subject);
+        stmt.setString(2, user);
+        try (ResultSet result = stmt.executeQuery()){
+            if (!result.next()) {
+                return null;
+            }
+            return result.getString("email");
+        }
+    }
+
     @Override
     public void close() throws SQLException {
         conn.close();
