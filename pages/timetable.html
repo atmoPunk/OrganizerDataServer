@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <title>Change timetable</title>
+    <link href="homework.css" rel="stylesheet">
+    <script src="jquery.js"></script>
+    <script>
+let lessonnames = new Map();
+lessonnames.set('Алгоритмы', 'algos');
+lessonnames.set('Матлогика', 'matlogic');
+
+function secondsFromMidnight(time) {
+    let split = time.split(":");
+    return split[0] * 3600 + split[1] * 60;
+}
+
+class Lesson {
+    constructor(name, subtype, start_time, end_time, link) {
+        this.name = name;
+        this.subtype = subtype;
+        this.start_time = start_time;
+        this.end_time = end_time;
+        this.link = link;
+    }
+}
+
+class Timetable {
+    lessons = []
+}
+
+class TimetableChange {
+    message = '';
+    new_timetable = new Timetable();
+}
+
+class TimetableChangeRequest {
+    date;
+    change = new TimetableChange();
+}
+
+let change = new TimetableChangeRequest();
+    </script>
+    <script>
+$(document).ready(function(){
+    $('#addlesson').click(function() {
+        $('#lessons').append('<tr><th>' + $('#lessonname').val() + '</th><th>' + $('#lessontype').val() + '</th><th>' + $('#starttime').val() + '</th><th>' + $('#endtime').val() + '</th><th>' + $('#lessonlink').val() + '</th></tr>');
+        change.change.new_timetable.lessons.push(new Lesson(lessonnames.get($('#lessonname').val()), $('#lessontype').val(), secondsFromMidnight($('#starttime').val()), secondsFromMidnight($('#endtime').val()), $('#lessonlink').val()));
+        
+        $('#lessonname').val('');
+    });
+
+    $('#changeform').click(function() {
+        change.date = $('#ctdate').val()
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:5001/change",
+            data: JSON.stringify(change),
+            success: function (data) {
+                alert('SUCCESS');
+            }
+        });
+    });
+});
+    </script>
+  </head>
+  <body>
+    <form>
+        <h1>Change timetable form</h1>
+        <p>
+            <label for="date">
+                <span>Date:</span>
+            </label>
+            <input type="date" id="ctdate" name="ctdate">
+        </p>
+        <p>
+            <label for="lessons">
+                <span>Lessons:</span>
+            </label>
+            <table id="lessons">
+                <tr>
+                    <th>Subject</th>
+                    <th>Kind</th>
+                    <th>Start time</th>
+                    <th>End time</th>
+                    <th>Link</th>
+                </tr>
+            </table>
+        </p>
+        <p>
+            <fieldset>
+                <legend>Add lesson</legend>
+                <p>
+                <label for="lessonname">
+                    <span>Name:</span>
+                </label>
+                <select id="lessonname" name="lessonname" required>
+                    <option value="Алгоритмы">Алгоритмы</option>
+                    <option value="Матлогика">Матлогика</option>
+                </select>
+                </p>
+                <p>
+                <label for="lessontype">
+                    <span>Type:</span>
+                </label>
+                <select id="lessontype" name="lessontype" required>
+                    <option value="Семинар">Семинар</option>
+                    <option value="Лекция">Лекция</option>
+                </select>
+                </p>
+                <p>
+                <label for="starttime">
+                    <span>Start time:</span>
+                </label>
+                <input type="time" id="starttime" name="starttime" required>
+                </p>
+                <p>
+                <label for="endtime"><span>End time:</span></label>
+                <input type="time" id="endtime" name="endtime" required>
+                </p>
+                <p>
+                <label for="lessonlink"><span>Link:</span></label>
+                <input type="text" id="lessonlink" name="lessonlink">
+                </p>
+                <button type="button" id="addlesson">Add lesson</button>
+            </fieldset>
+        </p>
+        <p>
+            <button type="button" id="changeform">Upload change</button>
+        </p>
+    </form>
+  </body>
+</html>

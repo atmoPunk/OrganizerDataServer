@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <title>Upload homework</title>
+    <link href="homework.css" rel="stylesheet">
+    <script src="jquery.js"></script>
+    <script>
+class HomeworkUploadRequest {
+    constructor(subject, date, link, data) {
+        this.subject = subject;
+        this.date = date;
+        this.link = link;
+        this.data = data;
+    }
+}
+
+    </script>
+    <script>
+$(document).ready(function() {
+    $('#submitb').click(function() {
+        let request = new HomeworkUploadRequest($('#subject').val(), $('#deadline').val(), $('#link').val(), $('#text').val());
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:5001/homework/upload",
+            data: JSON.stringify(request),
+            success: function (data) {
+                alert('Success');
+            }
+        });
+    });    
+});
+    </script>
+  </head>
+  <body>
+    <form method="post">
+        <h1>Upload homework form</h1>
+        <p>
+            <label for="subject">
+                <span>Subject:</span>
+            </label>
+            <select id="subject" name="hwsubject">
+                <option value="algos">Алгоритмы</option>
+                <option value="java">Java</option>
+            </select>
+        </p>
+        <p>
+            <label for="deadline">
+                <span>Deadline:</span>
+            </label>
+            <input type="date" id="deadline" name="hwdeadline">
+        </p>
+        <p>
+            <label for="link">
+                <span>Link:</span>
+                <abbr title="optional">*</abbr>
+            </label>
+            <input type="text" id="link" name="hwlink">
+        </p>
+        <p>
+            <label for="Text">
+                <span>Text:</span>
+                <abbr title="optional">*</abbr>
+            </label>
+            <textarea id="text" name="hwtext"></textarea>
+        </p>
+        <p>
+            <button type="button" id="submitb">Upload homework</button>
+        </p>
+    </form>
+  </body>
+</html>
