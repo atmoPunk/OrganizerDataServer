@@ -26,9 +26,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.commons.io.FileUtils;
 
 
 public class Server {
@@ -281,8 +281,20 @@ public class Server {
             try (DBConnection db = new DBConnection()) {
                 UserInfo info = db.getUserInfo(user);
                 Timetable t = db.getTimetableDay(dayRequest.day, info);
-                //TODO: changes not only for today
-                if (DayOfWeek.of(dayRequest.day) == LocalDate.now().getDayOfWeek()) {
+                int dif = LocalDate.now().getDayOfWeek().getValue() - DayOfWeek.of(dayRequest.day).getValue();
+                if (dif < 0) {
+                    Timetable change = db.getChangesForDate(LocalDate.now().plusDays(-dif));
+                    System.err.println(change);
+                    if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
+                        t = change;
+                    }
+                } else if (dif > 0){
+                    Timetable change = db.getChangesForDate(LocalDate.now().plusDays(7 - dif));
+                    System.err.println(change);
+                    if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
+                        t = change;
+                    }
+                } else {
                     Timetable change = db.getChangesForDate(LocalDate.now());
                     System.err.println(change);
                     if (change != null && !change.lessons.isEmpty()) { // TODO: change.lessons.isEmpty is valid state
@@ -365,10 +377,10 @@ public class Server {
             try (DBConnection db = new DBConnection()) {
                 String sendTo = db.getHomeworkAddress(user, request.subject);
                 System.err.println("SEND TO: " + sendTo);
-                String filePath = getFile(request.fileId).filePath;
-                String message = request.message + '\n' + filePath;
+                String filePath = getFile(request.fileId);
                 String messageSubj = "ITMO.MSE homework on " + request.subject + " from " + user;
-                Gmail.send(sendTo, messageSubj, message);
+                Gmail.send(sendTo, messageSubj, filePath);
+                FileUtils.deleteQuietly(FileUtils.getFile(filePath));
                 ans = "Ok";
             } catch (SQLException | InterruptedException e) {
                 System.err.println(e.getMessage());
@@ -452,11 +464,11 @@ public class Server {
             }
         }
 
-        private TelegramFile getFile(String fileId) throws IOException, InterruptedException {
-            HttpRequest request = HttpRequest.newBuilder(
+        private String getFile(String fileId) throws IOException, InterruptedException{
+            HttpRequest filePathRequest = HttpRequest.newBuilder(
                     URI.create("https://api.telegram.org/bot1728118655:AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ/getFile?file_id=" + fileId))
                     .build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(filePathRequest, HttpResponse.BodyHandlers.ofString());
             System.err.println(response.body());
             Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
             TelegramGetFileResponce parsedResponce = g.fromJson(response.body(), TelegramGetFileResponce.class);
