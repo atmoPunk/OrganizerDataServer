@@ -81,6 +81,9 @@ public class DBConnection implements AutoCloseable {
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setInt(1, day);
         stmt.setInt(2, ui.matlogic);
+        stmt.setInt(3, ui.algos);
+        stmt.setInt(4, ui.spec);
+        stmt.setInt(5, ui.formlang);
         try (ResultSet result = stmt.executeQuery()) {
             System.err.println("Query executed");
             Timetable t = new Timetable();
@@ -166,12 +169,18 @@ public class DBConnection implements AutoCloseable {
         }
     }
 
-    public HomeworkResponse getHomeworkBySubject(String subject) throws SQLException {
-        String sql = "SELECT date, link, data FROM homework WHERE subject = ? AND date >= ? ORDER BY date";
+    public HomeworkResponse getHomeworkBySubject(String subject, String user) throws SQLException {
+        String sql = "SELECT date, link, data FROM homework JOIN users ON " +
+                "(homework.formlang IS users.formlang OR homework.formlang IS NULL OR users.formlang IS NULL) " +
+                "AND (homework.algos IS users.algos OR homework.algos IS NULL OR users.algos IS NULL) " +
+                "AND (homework.matlogic IS users.matlogic OR homework.matlogic IS NULL OR users.matlogic IS NULL) " +
+                "AND (homework.spec IS users.spec OR homework.spec IS NULL OR users.spec IS NULL)" +
+                " WHERE subject = ? AND date >= ? AND user = ? ORDER BY date";
         PreparedStatement stmt = conn.prepareStatement(sql);
         LocalDate curDate = LocalDate.now();
         stmt.setString(1, subject);
         stmt.setDate(2, Date.valueOf(curDate));
+        stmt.setString(3, user);
         try (ResultSet result = stmt.executeQuery()) {
             if (!result.next()) {
                 return null;
@@ -187,10 +196,10 @@ public class DBConnection implements AutoCloseable {
     public List<HomeworkResponse> getHomework(String user) throws SQLException {
         String sql = "SELECT date, link, homework.subject, data FROM homework JOIN users ON " +
                 "(homework.formlang IS users.formlang OR homework.formlang IS NULL OR users.formlang IS NULL) " +
-                "AND (homework.algos IS users.algos OR homework.algos IS NULL OR users.formlang IS NULL) " +
+                "AND (homework.algos IS users.algos OR homework.algos IS NULL OR users.algos IS NULL) " +
                 "AND (homework.matlogic IS users.matlogic OR homework.matlogic IS NULL OR users.matlogic IS NULL) " +
                 "AND (homework.spec IS users.spec OR homework.spec IS NULL OR users.spec IS NULL)" +
-                "WHERE date >= ?  AND user = ? ORDER BY date";
+                "WHERE date >= ? AND user = ? ORDER BY date";
         PreparedStatement stmt = conn.prepareStatement(sql);
         LocalDate curDate = LocalDate.now();
         stmt.setDate(1, Date.valueOf(curDate));
@@ -220,7 +229,7 @@ public class DBConnection implements AutoCloseable {
     public String   getHomeworkAddress(String user, String subject) throws SQLException {
         String sql = "SELECT email FROM teacher_emails JOIN users ON " +
                 "(teacher_emails.formlang IS users.formlang OR teacher_emails.formlang IS NULL OR users.formlang IS NULL) " +
-                "AND (teacher_emails.algos IS users.algos OR teacher_emails.algos IS NULL OR users.formlang IS NULL) " +
+                "AND (teacher_emails.algos IS users.algos OR teacher_emails.algos IS NULL OR users.algos IS NULL) " +
                 "AND (teacher_emails.matlogic IS users.matlogic OR teacher_emails.matlogic IS NULL OR users.matlogic IS NULL) " +
                 "AND (teacher_emails.spec IS users.spec OR teacher_emails.spec IS NULL OR users.spec IS NULL) WHERE subject = ? AND users.user = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
@@ -242,7 +251,7 @@ public class DBConnection implements AutoCloseable {
     public String getReport(String user, String subject) throws SQLException {
         String sql = "SELECT perfreport FROM teacher_emails JOIN users ON " +
                 "(teacher_emails.formlang IS users.formlang OR teacher_emails.formlang IS NULL OR users.formlang IS NULL) " +
-                "AND (teacher_emails.algos IS users.algos OR teacher_emails.algos IS NULL OR users.formlang IS NULL) " +
+                "AND (teacher_emails.algos IS users.algos OR teacher_emails.algos IS NULL OR users.algos IS NULL) " +
                 "AND (teacher_emails.matlogic IS users.matlogic OR teacher_emails.matlogic IS NULL OR users.matlogic IS NULL) " +
                 "AND (teacher_emails.spec IS users.spec OR teacher_emails.spec IS NULL OR users.spec IS NULL) WHERE subject = ? AND users.user = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);

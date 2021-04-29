@@ -95,7 +95,7 @@ public class Server {
                         System.err.println("ENTER /homework/subj");
                         HomeworkBySubjRequest hwRequest = g.fromJson(reader, HomeworkBySubjRequest.class);
                         try {
-                            handleGetHomeworkBySubj(httpExchange, hwRequest);
+                            handleGetHomeworkBySubj(httpExchange, hwRequest, user);
                         } catch (IOException e) {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
@@ -220,11 +220,11 @@ public class Server {
             handleResponse(httpExchange, ans);
         }
 
-        private void handleGetHomeworkBySubj(HttpExchange httpExchange, HomeworkBySubjRequest request) throws IOException {
+        private void handleGetHomeworkBySubj(HttpExchange httpExchange, HomeworkBySubjRequest request, String user) throws IOException {
             String ans;
             Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
             try (DBConnection db = new DBConnection()) {
-                HomeworkResponse homework = db.getHomeworkBySubject(request.subject);
+                HomeworkResponse homework = db.getHomeworkBySubject(request.subject, user);
                 ans = g.toJson(homework);
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
