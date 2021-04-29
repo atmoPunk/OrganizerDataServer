@@ -8,9 +8,9 @@ import javax.mail.internet.*;
 
 public class Gmail {
     private static String USER_NAME = "rompel322";
-    private static String PASSWORD = "twiuoeolskpdxcoo";
+    private static String PASSWORD = "vftkhecekehdqmhf";
 
-    public static void send(String to, String subject, String body) {
+    public static void send(String to, String subject, String filePath) {
         Properties props = System.getProperties();
         String host = "smtp.gmail.com";
         props.put("mail.smtp.starttls.enable", "true");

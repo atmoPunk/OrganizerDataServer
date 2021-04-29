@@ -21,6 +21,7 @@ dependencies {
     implementation("com.google.apis:google-api-services-gmail:v1-rev83-1.23.0")
     implementation("javax.mail:mail:1.5.0-b01")
     implementation("org.apache.httpcomponents:httpclient:4.5.13")
+    implementation("commons-io:commons-io:2.8.0")
 }
 
 application {
