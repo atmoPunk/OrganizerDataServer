@@ -1,4 +1,6 @@
 package ru.mse.dataserver;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import javax.mail.*;
 import javax.mail.internet.*;
@@ -31,7 +33,18 @@ public class Gmail {
             message.addRecipient(Message.RecipientType.TO, toAddress);
 
             message.setSubject(subject);
-            message.setText(body);
+            MimeBodyPart textPart = new MimeBodyPart();
+            textPart.setText("text");
+            MimeBodyPart filePart = new MimeBodyPart();
+            try {
+                filePart.attachFile(new File(filePath));
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            Multipart mp = new MimeMultipart();
+            mp.addBodyPart(textPart);
+            mp.addBodyPart(filePart);
+            message.setContent(mp);
             Transport transport = session.getTransport("smtp");
 
             transport.connect(host, USER_NAME, PASSWORD);
