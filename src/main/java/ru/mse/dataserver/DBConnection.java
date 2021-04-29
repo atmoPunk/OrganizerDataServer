@@ -30,6 +30,24 @@ public class DBConnection implements AutoCloseable {
         stmt.executeUpdate();
     }
 
+    public List<UserInfo> getUsers() throws SQLException {
+        String sql = "SELECT * FROM users";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        try (ResultSet rs = stmt.executeQuery()) {
+            List<UserInfo>res = new ArrayList<>();
+            while(rs.next()) {
+                UserInfo ui = new UserInfo();
+                ui.user = rs.getString("user");
+                ui.formlang = rs.getInt("formlang");
+                ui.spec = rs.getInt("spec");
+                ui.matlogic = rs.getInt("matlogic");
+                ui.algos = rs.getInt("algos");
+                res.add(ui);
+            }
+            return res;
+        }
+    }
+
     public UserInfo getUserInfo(String user) throws SQLException {
         String sql = "SELECT * FROM users where user = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);

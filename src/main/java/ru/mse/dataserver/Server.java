@@ -1,4 +1,5 @@
 package ru.mse.dataserver;
+
 import com.google.gson.*;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
@@ -8,6 +9,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -26,12 +28,13 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.FileUtils;
-
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.commons.io.FileUtils;
 
 
 public class Server {
 
-    Server(){
+    Server() {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(5001), 0);
             HttpContext httpContext = server.createContext("/");
@@ -80,7 +83,8 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                    } break;
+                    }
+                    break;
                     case "/change": {
                         System.err.println("ENTER /change");
                         try {
@@ -101,7 +105,7 @@ public class Server {
 //                        }
                         break;
                     }
-                    case "/homework/subj" :{
+                    case "/homework/subj": {
                         System.err.println("ENTER /homework/subj");
                         HomeworkBySubjRequest hwRequest = g.fromJson(reader, HomeworkBySubjRequest.class);
                         try {
@@ -112,7 +116,7 @@ public class Server {
                         }
                         break;
                     }
-                    case "/homework" :{
+                    case "/homework": {
                         System.err.println("ENTER /homework");
                         try {
                             handleGetHomework(httpExchange, user);
@@ -122,7 +126,7 @@ public class Server {
                         }
                         break;
                     }
-                    case "/homework/upload" :{
+                    case "/homework/upload": {
                         System.err.println("ENTER /homework/upload");
                         HomeworkUploadRequest hwRequest = g.fromJson(reader, HomeworkUploadRequest.class);
                         try {
@@ -131,7 +135,8 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                        break;}
+                       break;
+                    }
                     case "/pages/homework.html":
                     case "/pages/homework": {
                         try {
@@ -206,8 +211,9 @@ public class Server {
                         }
 //                        req.data;
 
-                    } break;
-                    case "/homework/send":{
+                    }
+                    break;
+                    case "/homework/send": {
                         System.err.println("ENTER /homework/send");
                         HomeworkSendRequest req = g.fromJson(reader, HomeworkSendRequest.class);
                         try {
@@ -227,7 +233,8 @@ public class Server {
                             ex.printStackTrace();
                             System.err.println(ex.getMessage());
                         }
-                    } break;
+                    }
+                    break;
                     case "/set_lessons": {
                         System.err.println("ENTER /set_lessons");
                         SetLessonsRequest slReq = g.fromJson(reader, SetLessonsRequest.class);
@@ -238,7 +245,18 @@ public class Server {
                             System.err.println(e.getMessage());
                         }
 
-                    } break;
+                    }
+                    break;
+                    case "/send_alert":
+                        System.err.println("ENTER /send_alert");
+                        AlertRequest alertRequest = g.fromJson(reader, AlertRequest.class);
+                        try {
+                            handleSendAlert(httpExchange, alertRequest.text);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            System.err.println(e.getMessage());
+                        }
+                        break;
                     default: {
                         handleResponse(httpExchange, "UNKNOWN PATH");
                         break;
@@ -373,6 +391,40 @@ public class Server {
 
         }
 
+        private void handleSendAlert(HttpExchange httpExchange, String text) throws IOException {
+            String ans;
+            try (DBConnection db = new DBConnection()) {
+                List<UserInfo> users = db.getUsers();
+                users.forEach(userInfo -> {
+                    sendMessage(userInfo.user, text);
+                });
+                ans = "Ok";
+            } catch (SQLException e) {
+                System.err.println(e.getMessage());
+                ans = "Ошибка сервера, попробуйте позже";
+            }
+            handleResponse(httpExchange, ans);
+        }
+
+        final String BOT_TOKEN = "1728118655:AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ";
+
+        private void sendMessage(String chatId, String text) {
+            URIBuilder builder = new URIBuilder();
+            try {
+                URI uri = builder.setScheme("https")
+                        .setHost("api.telegram.org")
+                        .setPath("bot" + BOT_TOKEN + "/sendMessage")
+                        .addParameter("chat_id", chatId)
+                        .addParameter("text", text)
+                        .build();
+                HttpRequest request = HttpRequest.newBuilder(uri)
+                        .build();
+                client.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (URISyntaxException | IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         private void handleHtmlResponse(HttpExchange httpExchange, Path pathToPage) throws IOException {
             System.err.println("handleHtmlResponse: " + pathToPage);
             httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("text/html"));
@@ -403,7 +455,7 @@ public class Server {
             System.err.println("handleCssResponse: OK");
         }
 
-        private void handleResponse(HttpExchange httpExchange, String toSend)  throws IOException {
+        private void handleResponse(HttpExchange httpExchange, String toSend) throws IOException {
             System.err.println(toSend);
             httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("application/json"));
             httpExchange.sendResponseHeaders(200, 0);
