@@ -10,6 +10,10 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -39,6 +43,8 @@ public class Server {
 
 
     private class ScheduleHttpHandler implements HttpHandler {
+
+        private HttpClient client = HttpClient.newHttpClient();
 
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -270,10 +276,12 @@ public class Server {
             try (DBConnection db = new DBConnection()) {
                 String sendTo = db.getHomeworkAddress(user, request.subject);
                 System.err.println("SEND TO: " + sendTo);
+                String filePath = getFilePath(request.fileId).filePath;
+                String message = request.message + '\n' + filePath;
                 String messageSubj = "ITMO.MSE homework on " + request.subject + " from " + user;
-                Gmail.send(sendTo, messageSubj, request.message);
+                Gmail.send(sendTo, messageSubj, message);
                 ans = "Ok";
-            } catch (SQLException e) {
+            } catch (SQLException | InterruptedException e) {
                 System.err.println(e.getMessage());
                 ans = "Ошибка сервера, попробуйте позже";
             }
@@ -289,6 +297,15 @@ public class Server {
             try (var writer = new BufferedWriter(new OutputStreamWriter(outputStream))) {
                 writer.write(toSend);
             }
+        }
+
+        private TelegramGetFileResponce getFilePath(String fileId) throws IOException, InterruptedException{
+            HttpRequest request = HttpRequest.newBuilder(
+                    URI.create("https://api.telegram.org/bot<AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ>/getFile?file_id=" + fileId))
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
+            return g.fromJson(response.body(), TelegramGetFileResponce.class);
         }
     }
 }
