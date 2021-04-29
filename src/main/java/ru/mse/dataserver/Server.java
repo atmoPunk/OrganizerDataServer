@@ -209,6 +209,7 @@ public class Server {
                             System.err.println("EXCEPT IN UPLOAD FORM" + e.getMessage());
                             handleHtmlResponse(httpExchange, Paths.get("pages/error.html"));
                         }
+                        sendAlerts("Появилось новое домашнее задание по " + req.subject);
 //                        req.data;
 
                     }
@@ -371,6 +372,7 @@ public class Server {
                 ans = "Ошибка сервера, попробуйте позже";
             }
             handleResponse(httpExchange, ans);
+            sendAlerts("Появилось новое домашнее задание по " + request.subject);
         }
 
         private void handleSendHomework(HttpExchange httpExchange, String user, HomeworkSendRequest request) throws IOException {
@@ -391,17 +393,26 @@ public class Server {
 
         }
 
-        private void handleSendAlert(HttpExchange httpExchange, String text) throws IOException {
-            String ans;
+        private boolean sendAlerts(String text) {
+            System.err.println("Sending alert: " + text);
             try (DBConnection db = new DBConnection()) {
                 List<UserInfo> users = db.getUsers();
                 users.forEach(userInfo -> {
                     sendMessage(userInfo.user, text);
                 });
-                ans = "Ok";
+                return true;
             } catch (SQLException e) {
-                System.err.println(e.getMessage());
-                ans = "Ошибка сервера, попробуйте позже";
+                System.err.println("Exception in sendAlert: " + e.getMessage());
+                return false;
+            }
+        }
+
+        private void handleSendAlert(HttpExchange httpExchange, String text) throws IOException {
+            String ans;
+            if (sendAlerts(text)) {
+                ans = "Ok";
+            } else {
+                ans = "Error";
             }
             handleResponse(httpExchange, ans);
         }
@@ -417,6 +428,7 @@ public class Server {
                         .addParameter("chat_id", chatId)
                         .addParameter("text", text)
                         .build();
+                System.err.println("URI: " + uri);
                 HttpRequest request = HttpRequest.newBuilder(uri)
                         .build();
                 client.send(request, HttpResponse.BodyHandlers.ofString());
