@@ -17,8 +17,11 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.Collections;
 
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -81,6 +84,8 @@ public class Server {
                         System.err.println("ENTER /change");
                         try {
                             TimetableChangeRequest data = g.fromJson(reader, TimetableChangeRequest.class);
+                            System.err.println(data.date);
+                            System.err.println(data.change.newTimetable.lessons.size());
                             System.err.println("ABC");
                             handleScheduleChange(httpExchange, data);
                         } catch (JsonSyntaxException | IOException ex) {
@@ -126,19 +131,78 @@ public class Server {
                             System.err.println(e.getMessage());
                         }
                         break;}
-                    case "/ui/homework": {
-                        System.err.println("/ui/homework/");
-                        handleHtmlResponse(httpExchange, Paths.get("pages/homework.html"));
+                    case "/pages/homework.html":
+                    case "/pages/homework": {
+                        try {
+                            System.err.println("/pages/homework/html");
+                            handleHtmlResponse(httpExchange, Paths.get("pages/homework.html"));
+                        } catch (Exception ex) {
+                            System.err.println("ERROR:" + ex.getMessage());
+                        }
                     } break;
-                    case "/ui/homework.css": {
-                        System.err.println("/ui/homework/");
-                        handleCssResponse(httpExchange, Paths.get("pages/homework.css"));
+                    case "/pages/timetable.html":
+                    case "/pages/timetable": {
+                        try {
+                            System.err.println("ENTER /pages/change");
+                            handleHtmlResponse(httpExchange, Paths.get("pages/timetable.html"));
+                        } catch (Exception ex) {
+                            System.err.println("ERROR: " + ex.getMessage());
+                        }
+                    } break;
+                    case "/pages/jquery.js":{
+                        try {
+                            System.err.println("ENTER /pages/jquery.js");
+                            handleJSResponse(httpExchange, Paths.get("pages/jquery.js"));
+                        } catch (Exception ex) {
+                            System.err.println("ERROR: " + ex.getMessage());
+                        }
+                    } break;
+                    case "/pages/homework.css": {
+                        try {
+                            System.err.println("/pages/homework/css");
+                            handleCssResponse(httpExchange, Paths.get("pages/homework.css"));
+                        } catch (Exception ex) {
+                            System.err.println("ERROR:" + ex.getMessage());
+                        }
                     } break;
                     case "/homework/upload/form": {
-                        System.err.println("/homework/upload/form");
+                        System.err.println("ENTER /homework/upload/form");
 //                        IOUtils
-                        System.err.println(IOUtils.toString(reader));
+                        String paramString = IOUtils.toString(reader);
+                        System.err.println("PARAM STRING: " + paramString);
                         HomeworkUploadRequest req = new HomeworkUploadRequest();
+                        try {
+                            var params = paramString.split("&");
+                            HashMap<String, String> ps = new HashMap<>();
+                            for (String param : params) {
+                                var pst = param.split("=");
+                                ps.put(pst[0], pst[1]);
+                                System.err.println(pst[0] + ":" + pst[1]);
+                            }
+                            System.err.println("CREATING REQUEST");
+                            req.data = ps.get("hwtext");
+                            System.err.println("DEADLINE:" + ps.get("hwdeadline"));
+                            req.date = LocalDate.parse(ps.get("hwdeadline"), DateTimeFormatter.ISO_LOCAL_DATE);
+                            req.link = ps.get("hwlink");
+                            req.subject = ps.get("hwsubject");
+                            System.err.println("CREATING REQUEST");
+                        } catch (Exception e) {
+                            System.err.println("ERROR: " + e.getMessage());
+                            handleHtmlResponse(httpExchange, Paths.get("pages/error.html"));
+                        }
+                        System.err.println("ABCEDEF");
+                        try {
+                            try (DBConnection db = new DBConnection()) {
+                                db.uploadHomework(req);
+                                handleHtmlResponse(httpExchange, Paths.get("pages/ok.html"));
+                            } catch (SQLException e) {
+                                System.err.println(e.getMessage());
+                                handleHtmlResponse(httpExchange, Paths.get("pages/error.html"));
+                            }
+                        } catch (Exception e) {
+                            System.err.println("EXCEPT IN UPLOAD FORM" + e.getMessage());
+                            handleHtmlResponse(httpExchange, Paths.get("pages/error.html"));
+                        }
 //                        req.data;
 
                     } break;
@@ -265,6 +329,7 @@ public class Server {
             }
             handleResponse(httpExchange, ans);
         }
+
         private void handleUploadHomework(HttpExchange httpExchange, HomeworkUploadRequest request) throws IOException {
             String ans;
             try (DBConnection db = new DBConnection()) {
@@ -305,6 +370,16 @@ public class Server {
             System.err.println("handleHtmlResponse: OK");
         }
 
+        private void handleJSResponse(HttpExchange httpExchange, Path pathToPage) throws IOException {
+            System.err.println("handleJSResponse: " + pathToPage);
+            httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("application/javascript"));
+            httpExchange.sendResponseHeaders(200, 0);
+            try (var writer = new BufferedWriter(new OutputStreamWriter(httpExchange.getResponseBody())); var file = new FileInputStream(pathToPage.toFile())) {
+                IOUtils.copy(file, writer, Charset.defaultCharset());
+            }
+            System.err.println("handleHtmlResponse: OK");
+        }
+
         private void handleCssResponse(HttpExchange httpExchange, Path pathToPage) throws IOException {
             System.err.println("handleCssResponse: " + pathToPage);
             httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("text/css"));
@@ -334,7 +409,16 @@ public class Server {
             Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
             TelegramGetFileResponce parsedResponce = g.fromJson(response.body(), TelegramGetFileResponce.class);
             System.err.println(parsedResponce.result);
-            return g.fromJson(parsedResponce.result, TelegramFile.class);
+
+            HttpRequest fileRequest = HttpRequest.newBuilder(
+                    URI.create("https://api.telegram.org/file/bot1728118655:AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ/" + parsedResponce.result.filePath))
+                    .build();
+            HttpResponse<byte[]> bytes = client.send(fileRequest, HttpResponse.BodyHandlers.ofByteArray());
+            String[] splitPath =  parsedResponce.result.filePath.split("/");
+            String systemFilePath = "files/" + splitPath[splitPath.length - 1];
+            FileUtils.writeByteArrayToFile(new File(systemFilePath), bytes.body());
+            System.err.println(systemFilePath);
+            return systemFilePath;
         }
     }
 }

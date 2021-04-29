@@ -102,19 +102,25 @@ public class DBConnection implements AutoCloseable {
     }
 
     public void addTimetableChanges(LocalDate date, TimetableChange change) throws SQLException {
-        String sql1 = "INSERT INTO changes(date, message) VALUES(?, ?) RETURNING id";
+        String sql1 = "INSERT INTO changes(date, message) VALUES(?, ?)";
         PreparedStatement stmt1 = conn.prepareStatement(sql1);
         stmt1.setDate(1, Date.valueOf(date));
         stmt1.setString(2, change.message);
-        Integer changeId = null;
-        try (ResultSet rs1 = stmt1.executeQuery()) {
-            if (!rs1.next()) {
-                throw new RuntimeException("DID NOT INSERT CHANGE");
+        System.err.println(stmt1);
+        Integer changeId;
+        try {
+            stmt1.executeUpdate();
+            try (ResultSet rs = stmt1.getGeneratedKeys()) {
+                changeId = rs.getInt(1);
             }
-            changeId = rs1.getInt("id");
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+            throw ex;
         }
 
-        String sql2 = "INSERT INTO timetable(weekday, link, name, subtype, start_time, end_time, is_temp) VALUES(-1, ?, ?, ?, ?, ?, 1) RETURNING id";
+
+        System.err.println("inserted change");
+        String sql2 = "INSERT INTO timetable(weekday, link, name, subtype, start_time, end_time, is_temp) VALUES(-1, ?, ?, ?, ?, ?, 1)";
         PreparedStatement stmt2 = conn.prepareStatement(sql2);
         List<Integer> les_ids = new ArrayList<>();
         for (Timetable.Lesson lesson : change.newTimetable.lessons) {
@@ -123,11 +129,12 @@ public class DBConnection implements AutoCloseable {
             stmt2.setString(3, lesson.subtype);
             stmt2.setInt(4, lesson.StartTime);
             stmt2.setInt(5, lesson.EndTime);
-            try (ResultSet rs2 = stmt2.executeQuery()) {
+            stmt2.executeUpdate();
+            try (ResultSet rs2 = stmt2.getGeneratedKeys()) {
                 if (!rs2.next()) {
                     throw new RuntimeException("DID NOT INSERT NEW LESSON");
                 }
-                les_ids.add(rs2.getInt("id"));
+                les_ids.add(rs2.getInt(1));
             }
         }
 
