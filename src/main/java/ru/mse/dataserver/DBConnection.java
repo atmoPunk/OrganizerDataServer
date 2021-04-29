@@ -151,9 +151,9 @@ public class DBConnection implements AutoCloseable {
     public Timetable getChangesForDate(LocalDate date) throws SQLException {
         System.err.println(date);
         String sql = "SELECT timetable.name, timetable.link, timetable.start_time, timetable.end_time, " +
-                "timetable.subtype FROM changes WHERE date = ? JOIN change_to_tables ON " +
+                "timetable.subtype FROM changes JOIN change_to_tables ON " +
                 "changes.id = change_to_tables.change_id JOIN timetable ON " +
-                "change_to_tables.timetable_id = timetable.id ORDER BY start_time";
+                "change_to_tables.timetable_id = timetable.id  WHERE date = ? ORDER BY start_time";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setDate(1, Date.valueOf(date));
         try (ResultSet result = stmt.executeQuery()) {
@@ -177,11 +177,13 @@ public class DBConnection implements AutoCloseable {
                 "AND (homework.algos IS users.algos OR homework.algos IS NULL OR users.algos IS NULL) " +
                 "AND (homework.matlogic IS users.matlogic OR homework.matlogic IS NULL OR users.matlogic IS NULL) " +
                 "AND (homework.spec IS users.spec OR homework.spec IS NULL OR users.spec IS NULL)" +
-                " WHERE subject = ? AND date >= DATE('now') AND date <= DATE('now', '+7 days') AND user = ? ORDER BY date";
+                " WHERE subject = ? AND date >= ? AND date <= ? AND user = ? ORDER BY date";
         PreparedStatement stmt = conn.prepareStatement(sql);
 
         stmt.setString(1, subject);
-        stmt.setString(2, user);
+        stmt.setDate(2, Date.valueOf(LocalDate.now()));
+        stmt.setDate(3, Date.valueOf(LocalDate.now().plusDays(7)));
+        stmt.setString(4, user);
         try (ResultSet result = stmt.executeQuery()) {
             if (!result.next()) {
                 return null;
@@ -200,9 +202,11 @@ public class DBConnection implements AutoCloseable {
                 "AND (homework.algos IS users.algos OR homework.algos IS NULL OR users.algos IS NULL) " +
                 "AND (homework.matlogic IS users.matlogic OR homework.matlogic IS NULL OR users.matlogic IS NULL) " +
                 "AND (homework.spec IS users.spec OR homework.spec IS NULL OR users.spec IS NULL)" +
-                "WHERE date >= DATE('now') AND date <= DATE('now', '+7 days') AND user = ? ORDER BY date";
+                "WHERE date >= ? AND date <= ? AND user = ? ORDER BY date";
         PreparedStatement stmt = conn.prepareStatement(sql);
-        stmt.setString(1, user);
+        stmt.setString(3, user);
+        stmt.setDate(1, Date.valueOf(LocalDate.now()));
+        stmt.setDate(2, Date.valueOf(LocalDate.now().plusDays(7)));
         try (ResultSet result = stmt.executeQuery()) {
             List<HomeworkResponse> res = new ArrayList<>();
             while (result.next()) {
