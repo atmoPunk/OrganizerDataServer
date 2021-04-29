@@ -122,6 +122,14 @@ public class Server {
                             System.err.println(e.getMessage());
                         }
                         break;}
+                    case "/ui/homework": {
+                        System.err.println("/ui/homework/");
+
+                    }
+                    case "/homework/upload/form": {
+                        System.err.println("/homework/upload/form");
+                        System.err.println(IOUtils.toString(reader));
+                    } break;
                     case "/homework/send":{
                         System.err.println("ENTER /homework/send");
                         HomeworkSendRequest req = g.fromJson(reader, HomeworkSendRequest.class);
