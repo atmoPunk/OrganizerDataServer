@@ -1,8 +1,5 @@
 package ru.mse.dataserver;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.internal.bind.SqlDateTypeAdapter;
+import com.google.gson.*;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -14,16 +11,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Collections;
 
-import java.sql.Date;
 import java.util.List;
 
 
-import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 
 
@@ -130,11 +128,19 @@ public class Server {
                         break;}
                     case "/ui/homework": {
                         System.err.println("/ui/homework/");
-
-                    }
+                        handleHtmlResponse(httpExchange, Paths.get("pages/homework.html"));
+                    } break;
+                    case "/ui/homework.css": {
+                        System.err.println("/ui/homework/");
+                        handleCssResponse(httpExchange, Paths.get("pages/homework.css"));
+                    } break;
                     case "/homework/upload/form": {
                         System.err.println("/homework/upload/form");
+//                        IOUtils
                         System.err.println(IOUtils.toString(reader));
+                        HomeworkUploadRequest req = new HomeworkUploadRequest();
+//                        req.data;
+
                     } break;
                     case "/homework/send":{
                         System.err.println("ENTER /homework/send");
@@ -276,7 +282,7 @@ public class Server {
             try (DBConnection db = new DBConnection()) {
                 String sendTo = db.getHomeworkAddress(user, request.subject);
                 System.err.println("SEND TO: " + sendTo);
-                String filePath = getFilePath(request.fileId).filePath;
+                String filePath = getFile(request.fileId).filePath;
                 String message = request.message + '\n' + filePath;
                 String messageSubj = "ITMO.MSE homework on " + request.subject + " from " + user;
                 Gmail.send(sendTo, messageSubj, message);
@@ -289,6 +295,26 @@ public class Server {
 
         }
 
+        private void handleHtmlResponse(HttpExchange httpExchange, Path pathToPage) throws IOException {
+            System.err.println("handleHtmlResponse: " + pathToPage);
+            httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("text/html"));
+            httpExchange.sendResponseHeaders(200, 0);
+            try (var writer = new BufferedWriter(new OutputStreamWriter(httpExchange.getResponseBody())); var file = new FileInputStream(pathToPage.toFile())) {
+                IOUtils.copy(file, writer, Charset.defaultCharset());
+            }
+            System.err.println("handleHtmlResponse: OK");
+        }
+
+        private void handleCssResponse(HttpExchange httpExchange, Path pathToPage) throws IOException {
+            System.err.println("handleCssResponse: " + pathToPage);
+            httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("text/css"));
+            httpExchange.sendResponseHeaders(200, 0);
+            try (var writer = new BufferedWriter(new OutputStreamWriter(httpExchange.getResponseBody())); var file = new FileInputStream(pathToPage.toFile())) {
+                IOUtils.copy(file, writer, Charset.defaultCharset());
+            }
+            System.err.println("handleCssResponse: OK");
+        }
+
         private void handleResponse(HttpExchange httpExchange, String toSend)  throws IOException {
             System.err.println(toSend);
             httpExchange.getResponseHeaders().put("Content-Type", Collections.singletonList("application/json"));
@@ -299,13 +325,16 @@ public class Server {
             }
         }
 
-        private TelegramGetFileResponce getFilePath(String fileId) throws IOException, InterruptedException{
+        private TelegramFile getFile(String fileId) throws IOException, InterruptedException{
             HttpRequest request = HttpRequest.newBuilder(
-                    URI.create("https://api.telegram.org/bot<AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ>/getFile?file_id=" + fileId))
+                    URI.create("https://api.telegram.org/bot1728118655:AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ/getFile?file_id=" + fileId))
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.err.println(response.body());
             Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
-            return g.fromJson(response.body(), TelegramGetFileResponce.class);
+            TelegramGetFileResponce parsedResponce = g.fromJson(response.body(), TelegramGetFileResponce.class);
+            System.err.println(parsedResponce.result);
+            return g.fromJson(parsedResponce.result, TelegramFile.class);
         }
     }
 }
