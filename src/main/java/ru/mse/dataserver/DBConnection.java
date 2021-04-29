@@ -74,7 +74,10 @@ public class DBConnection implements AutoCloseable {
 //            }
 //        }
 
-        String sql = "SELECT * FROM timetable WHERE weekday = ? AND (matlogic = ? OR matlogic IS NULL) AND is_temp = 0 ORDER BY start_time";
+        String sql = "SELECT * FROM timetable WHERE weekday = ? AND (matlogic = ? OR matlogic IS NULL) " +
+                "AND (algos = ? OR algos IS NULL)" +
+                "AND (spec = ? OR spec IS NULL) " +
+                "AND (formlang = ? OR formlang IS NULL) AND is_temp = 0 ORDER BY start_time";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setInt(1, day);
         stmt.setInt(2, ui.matlogic);
@@ -181,11 +184,17 @@ public class DBConnection implements AutoCloseable {
         }
     }
 
-    public List<HomeworkResponse> getHomework() throws SQLException {
-        String sql = "SELECT date, link, subject, data FROM homework WHERE date >= ? ORDER BY date";
+    public List<HomeworkResponse> getHomework(String user) throws SQLException {
+        String sql = "SELECT date, link, homework.subject, data FROM homework JOIN users ON " +
+                "(homework.formlang IS users.formlang OR homework.formlang IS NULL OR users.formlang IS NULL) " +
+                "AND (homework.algos IS users.algos OR homework.algos IS NULL OR users.formlang IS NULL) " +
+                "AND (homework.matlogic IS users.matlogic OR homework.matlogic IS NULL OR users.matlogic IS NULL) " +
+                "AND (homework.spec IS users.spec OR homework.spec IS NULL OR users.spec IS NULL)" +
+                "WHERE date >= ?  AND user = ? ORDER BY date";
         PreparedStatement stmt = conn.prepareStatement(sql);
         LocalDate curDate = LocalDate.now();
         stmt.setDate(1, Date.valueOf(curDate));
+        stmt.setString(2, user);
         try (ResultSet result = stmt.executeQuery()) {
             List<HomeworkResponse> res = new ArrayList<>();
             while (result.next()) {

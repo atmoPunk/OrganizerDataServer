@@ -105,7 +105,7 @@ public class Server {
                     case "/homework" :{
                         System.err.println("ENTER /homework");
                         try {
-                            handleGetHomework(httpExchange);
+                            handleGetHomework(httpExchange, user);
                         } catch (IOException e) {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
@@ -233,11 +233,11 @@ public class Server {
             handleResponse(httpExchange, ans);
         }
 
-        private void handleGetHomework(HttpExchange httpExchange) throws IOException {
+        private void handleGetHomework(HttpExchange httpExchange, String user) throws IOException {
             String ans;
             Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
             try (DBConnection db = new DBConnection()) {
-                List<HomeworkResponse> homework = db.getHomework();
+                List<HomeworkResponse> homework = db.getHomework(user);
                 ans = g.toJson(homework);
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
