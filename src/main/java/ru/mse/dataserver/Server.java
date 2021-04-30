@@ -1,10 +1,15 @@
 package ru.mse.dataserver;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -20,17 +25,9 @@ import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.util.Collections;
-
 import java.util.HashMap;
 import java.util.List;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.commons.io.FileUtils;
-
 
 public class Server {
 
@@ -38,7 +35,7 @@ public class Server {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(5001), 0);
             HttpContext httpContext = server.createContext("/");
-            httpContext.setHandler(new ScheduleHttpHandler());
+            httpContext.setHandler(new ScheduleHttpHandler(System.getenv().get("BOT_TOKEN"), System.getenv().get("BOT_MAIL_LOGIN"), System.getenv().get("BOT_MAIL_PASS")));
             server.start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -49,7 +46,16 @@ public class Server {
 
     private class ScheduleHttpHandler implements HttpHandler {
 
-        private HttpClient client = HttpClient.newHttpClient();
+        private final HttpClient client = HttpClient.newHttpClient();
+        private final String bot_token;
+        private final String mail_login;
+        private final String mail_pass;
+
+        ScheduleHttpHandler(String bot_token, String mail_login, String mail_pass) {
+            this.bot_token = bot_token;
+            this.mail_login = mail_login;
+            this.mail_pass = mail_pass;
+        }
 
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -74,7 +80,7 @@ public class Server {
                 String path = httpExchange.getRequestURI().toString().split("\\?")[0];
 
                 switch (path) {
-                    case "/day": {
+                    case "/day" -> {
                         System.err.println("ENTER /day");
                         DayRequest dayRequest = g.fromJson(reader, DayRequest.class);
                         try {
@@ -84,8 +90,7 @@ public class Server {
                             System.err.println(e.getMessage());
                         }
                     }
-                    break;
-                    case "/change": {
+                    case "/change" -> {
                         System.err.println("ENTER /change");
                         try {
                             TimetableChangeRequest data = g.fromJson(reader, TimetableChangeRequest.class);
@@ -98,14 +103,8 @@ public class Server {
                             System.err.println(ex.getMessage());
                             throw ex;
                         }
-//                        try {
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                            System.err.println(e.getMessage());
-//                        }
-                        break;
                     }
-                    case "/homework/subj": {
+                    case "/homework/subj" -> {
                         System.err.println("ENTER /homework/subj");
                         HomeworkBySubjRequest hwRequest = g.fromJson(reader, HomeworkBySubjRequest.class);
                         try {
@@ -114,9 +113,8 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                        break;
                     }
-                    case "/homework": {
+                    case "/homework" -> {
                         System.err.println("ENTER /homework");
                         try {
                             handleGetHomework(httpExchange, user);
@@ -124,9 +122,8 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                        break;
                     }
-                    case "/homework/upload": {
+                    case "/homework/upload" -> {
                         System.err.println("ENTER /homework/upload");
                         HomeworkUploadRequest hwRequest = g.fromJson(reader, HomeworkUploadRequest.class);
                         try {
@@ -135,45 +132,41 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                       break;
                     }
-                    case "/pages/homework.html":
-                    case "/pages/homework": {
+                    case "/pages/homework.html", "/pages/homework" -> {
                         try {
                             System.err.println("/pages/homework/html");
                             handleHtmlResponse(httpExchange, Paths.get("pages/homework.html"));
                         } catch (Exception ex) {
                             System.err.println("ERROR:" + ex.getMessage());
                         }
-                    } break;
-                    case "/pages/timetable.html":
-                    case "/pages/timetable": {
+                    }
+                    case "/pages/timetable.html", "/pages/timetable" -> {
                         try {
                             System.err.println("ENTER /pages/change");
                             handleHtmlResponse(httpExchange, Paths.get("pages/timetable.html"));
                         } catch (Exception ex) {
                             System.err.println("ERROR: " + ex.getMessage());
                         }
-                    } break;
-                    case "/pages/jquery.js":{
+                    }
+                    case "/pages/jquery.js" -> {
                         try {
                             System.err.println("ENTER /pages/jquery.js");
                             handleJSResponse(httpExchange, Paths.get("pages/jquery.js"));
                         } catch (Exception ex) {
                             System.err.println("ERROR: " + ex.getMessage());
                         }
-                    } break;
-                    case "/pages/homework.css": {
+                    }
+                    case "/pages/homework.css" -> {
                         try {
                             System.err.println("/pages/homework/css");
                             handleCssResponse(httpExchange, Paths.get("pages/homework.css"));
                         } catch (Exception ex) {
                             System.err.println("ERROR:" + ex.getMessage());
                         }
-                    } break;
-                    case "/homework/upload/form": {
+                    }
+                    case "/homework/upload/form" -> {
                         System.err.println("ENTER /homework/upload/form");
-//                        IOUtils
                         String paramString = IOUtils.toString(reader);
                         System.err.println("PARAM STRING: " + paramString);
                         HomeworkUploadRequest req = new HomeworkUploadRequest();
@@ -213,8 +206,7 @@ public class Server {
 //                        req.data;
 
                     }
-                    break;
-                    case "/homework/send": {
+                    case "/homework/send" -> {
                         System.err.println("ENTER /homework/send");
                         HomeworkSendRequest req = g.fromJson(reader, HomeworkSendRequest.class);
                         try {
@@ -223,9 +215,8 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                        break;
                     }
-                    case "/perfreport": {
+                    case "/perfreport" -> {
                         System.err.println("ENTER /perfreport");
                         PerformanceReportRequest req = g.fromJson(reader, PerformanceReportRequest.class);
                         try {
@@ -235,8 +226,7 @@ public class Server {
                             System.err.println(ex.getMessage());
                         }
                     }
-                    break;
-                    case "/set_lessons": {
+                    case "/set_lessons" -> {
                         System.err.println("ENTER /set_lessons");
                         SetLessonsRequest slReq = g.fromJson(reader, SetLessonsRequest.class);
                         try {
@@ -247,8 +237,7 @@ public class Server {
                         }
 
                     }
-                    break;
-                    case "/send_alert":
+                    case "/send_alert" -> {
                         System.err.println("ENTER /send_alert");
                         AlertRequest alertRequest = g.fromJson(reader, AlertRequest.class);
                         try {
@@ -257,11 +246,8 @@ public class Server {
                             e.printStackTrace();
                             System.err.println(e.getMessage());
                         }
-                        break;
-                    default: {
-                        handleResponse(httpExchange, "UNKNOWN PATH");
-                        break;
                     }
+                    default -> handleResponse(httpExchange, "UNKNOWN PATH");
                 }
             }
         }
@@ -382,7 +368,7 @@ public class Server {
                 System.err.println("SEND TO: " + sendTo);
                 String filePath = getFile(request.fileId);
                 String messageSubj = "ITMO.MSE homework on " + request.subject + " from " + user;
-                Gmail.send(sendTo, messageSubj, filePath);
+                Gmail.send(sendTo, messageSubj, filePath, this.mail_login, this.mail_pass);
                 FileUtils.deleteQuietly(FileUtils.getFile(filePath));
                 ans = "Ok";
             } catch (SQLException | InterruptedException e) {
@@ -397,9 +383,7 @@ public class Server {
             System.err.println("Sending alert: " + text);
             try (DBConnection db = new DBConnection()) {
                 List<UserInfo> users = db.getUsers();
-                users.forEach(userInfo -> {
-                    sendMessage(userInfo.user, text);
-                });
+                users.forEach(userInfo -> sendMessage(userInfo.user, text));
                 return true;
             } catch (SQLException e) {
                 System.err.println("Exception in sendAlert: " + e.getMessage());
@@ -417,14 +401,12 @@ public class Server {
             handleResponse(httpExchange, ans);
         }
 
-        final String BOT_TOKEN = "1728118655:AAEQOKogNSnI0WgkTNzpbpufH6LXi6HP6lQ";
-
         private void sendMessage(String chatId, String text) {
             URIBuilder builder = new URIBuilder();
             try {
                 URI uri = builder.setScheme("https")
                         .setHost("api.telegram.org")
-                        .setPath("bot" + BOT_TOKEN + "/sendMessage")
+                        .setPath("bot" + this.bot_token + "/sendMessage")
                         .addParameter("chat_id", chatId)
                         .addParameter("text", text)
                         .build();
@@ -484,7 +466,7 @@ public class Server {
             HttpResponse<String> response = client.send(filePathRequest, HttpResponse.BodyHandlers.ofString());
             System.err.println(response.body());
             Gson g = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).create();
-            TelegramGetFileResponce parsedResponce = g.fromJson(response.body(), TelegramGetFileResponce.class);
+            TelegramGetFileResponse parsedResponce = g.fromJson(response.body(), TelegramGetFileResponse.class);
             System.err.println(parsedResponce.result);
 
             HttpRequest fileRequest = HttpRequest.newBuilder(

@@ -1,6 +1,6 @@
 package ru.mse.dataserver;
 
-public class TelegramGetFileResponce {
+public class TelegramGetFileResponse {
     public boolean ok;
     public TelegramFile result;
 }
